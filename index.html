@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>عرض بيانات المستخدمين</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+        table {
+            width: 60%;
+            margin: 20px auto;
+            border-collapse: collapse;
+        }
+        table, th, td {
+            border: 1px solid black;
+        }
+        th, td {
+            padding: 8px;
+            text-align: center;
+        }
+        button {
+            padding: 5px 10px;
+            background-color: red;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: darkred;
+        }
+    </style>
+</head>
+<body>
+    <h1>عرض بيانات المستخدمين</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>البريد الإلكتروني</th>
+                <th>كلمة المرور</th>
+                <th>حذف</th>
+            </tr>
+        </thead>
+        <tbody id="usersTable">
+            <!-- سيتم إضافة البيانات هنا -->
+        </tbody>
+    </table>
+
+    <script type="module">
+        // استيراد مكتبات Firebase
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js";
+        import { getDatabase, ref, get, remove, onChildAdded, onValue } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-database.js";
+
+        // إعداد Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyCRwXnVGh3NWCDN9mWc36ebTyQQQHZovV8",
+            authDomain: "hack-f9c31.firebaseapp.com",
+            databaseURL: "https://hack-f9c31-default-rtdb.firebaseio.com",
+            projectId: "hack-f9c31",
+            storageBucket: "hack-f9c31.firebasestorage.app",
+            messagingSenderId: "195155402654",
+            appId: "1:195155402654:web:b475020ec4d8b08697c08f",
+            measurementId: "G-MXT3HZ56NT"
+        };
+
+        // تهيئة تطبيق Firebase
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
+
+        // وظيفة لتحميل البيانات وعرضها
+        function loadUsers() {
+            const usersRef = ref(database, 'users');
+            get(usersRef).then((snapshot) => {
+                const usersTable = document.getElementById('usersTable');
+                usersTable.innerHTML = '';  // مسح الجدول قبل إعادة تحميل البيانات
+                if (snapshot.exists()) {
+                    const users = snapshot.val();
+                    for (let userId in users) {
+                        const user = users[userId];
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${user.email}</td>
+                            <td>${user.password}</td>
+                            <td><button class="deleteButton" data-id="${userId}">حذف</button></td>
+                        `;
+                        usersTable.appendChild(row);
+                    }
+
+                    // إضافة وظيفة لحذف المستخدم عند الضغط على زر الحذف
+                    const deleteButtons = document.querySelectorAll('.deleteButton');
+                    deleteButtons.forEach(button => {
+                        button.addEventListener('click', (event) => {
+                            const userId = event.target.getAttribute('data-id');
+                            const userRef = ref(database, 'users/' + userId);
+                            remove(userRef).then(() => {
+                                alert("تم حذف المستخدم بنجاح.");
+                                event.target.parentElement.parentElement.remove(); // إزالة الصف من الجدول
+                            }).catch((error) => {
+                                console.error("حدث خطأ أثناء الحذف:", error);
+                            });
+                        });
+                    });
+                } else {
+                    alert("لا توجد بيانات في قاعدة البيانات.");
+                }
+            }).catch((error) => {
+                console.error("حدث خطأ أثناء جلب البيانات:", error);
+            });
+        }
+
+        // تحميل البيانات عند تحميل الصفحة
+        loadUsers();
+
+        // تحديث البيانات تلقائيًا عند إضافة بيانات جديدة
+        const usersRef = ref(database, 'users');
+        onChildAdded(usersRef, (data) => {
+            const usersTable = document.getElementById('usersTable');
+            const user = data.val();
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${user.email}</td>
+                <td>${user.password}</td>
+                <td><button class="deleteButton" data-id="${data.key}">حذف</button></td>
+            `;
+            usersTable.appendChild(row);
+
+            // إضافة وظيفة لحذف المستخدم عند الضغط على زر الحذف
+            const deleteButton = row.querySelector('.deleteButton');
+            deleteButton.addEventListener('click', (event) => {
+                const userId = event.target.getAttribute('data-id');
+                const userRef = ref(database, 'users/' + userId);
+                remove(userRef).then(() => {
+                    alert("تم حذف المستخدم بنجاح.");
+                    event.target.parentElement.parentElement.remove(); // إزالة الصف من الجدول
+                }).catch((error) => {
+                    console.error("حدث خطأ أثناء الحذف:", error);
+                });
+            });
+        });
+
+    </script>
+</body>
+</html>
